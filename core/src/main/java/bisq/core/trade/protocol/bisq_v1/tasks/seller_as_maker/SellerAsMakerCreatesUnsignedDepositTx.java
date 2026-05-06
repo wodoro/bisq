@@ -80,8 +80,11 @@ public class SellerAsMakerCreatesUnsignedDepositTx extends TradeTask {
                     .add(offer.getBuyerSecurityDeposit());
 
             List<RawTransactionInput> takerRawTransactionInputs = checkNotNull(tradingPeer.getRawTransactionInputs());
-            checkArgument(takerRawTransactionInputs.stream().allMatch(processModel.getTradeWalletService()::isP2WH),
-                    "all takerRawTransactionInputs must be P2WH");
+            // Strict P2WPKH only. WalletUtils.isP2WH accepts both P2WPKH and P2WSH; we don't
+            // need P2WSH funding support here, and accepting it lets a peer slip in a
+            // script-controlled input.
+            checkArgument(takerRawTransactionInputs.stream().allMatch(walletService::isP2WPKH),
+                    "all takerRawTransactionInputs must be P2WPKH");
             Coin expectedTakersInputAmount = offer.getBuyerSecurityDeposit()
                     .add(trade.getTradeTxFee().multiply(2));
             TradePeerTxInputValidator.validatePeersInputs(takerRawTransactionInputs,

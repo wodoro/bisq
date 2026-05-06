@@ -50,6 +50,29 @@ public final class WalletUtils {
         }
     }
 
+    /**
+     * Strict P2WPKH check. Use this for raw wallet funding inputs in the deposit-tx flow.
+     * The original isP2WH above accepts both P2WPKH and P2WSH (per bitcoinj's ScriptPattern),
+     * which lets a peer slip in a script-controlled P2WSH input. We do not need P2WSH funding
+     * support for normal trades — restricting to P2WPKH removes the edge case.
+     */
+    public static boolean isP2WPKH(RawTransactionInput rawTransactionInput, NetworkParameters params) {
+        try {
+            TransactionOutput connectedOutput = getConnectedOutPoint(rawTransactionInput, params).getConnectedOutput();
+            if (connectedOutput == null) {
+                return false;
+            }
+            Script scriptPubKey = connectedOutput.getScriptPubKey();
+            if (scriptPubKey == null) {
+                return false;
+            }
+            return ScriptPattern.isP2WPKH(scriptPubKey);
+        } catch (Exception e) {
+            log.error("isP2WPKH check failed", e);
+            return false;
+        }
+    }
+
     public static TransactionOutPoint getConnectedOutPoint(RawTransactionInput rawTransactionInput,
                                                            NetworkParameters params) {
         return new TransactionOutPoint(params, rawTransactionInput.index,

@@ -845,6 +845,10 @@ public abstract class WalletService {
         return WalletUtils.isP2WH(rawTransactionInput, params);
     }
 
+    public boolean isP2WPKH(RawTransactionInput rawTransactionInput) {
+        return WalletUtils.isP2WPKH(rawTransactionInput, params);
+    }
+
     @Nullable
     public static Address getAddressFromOutput(TransactionOutput output) {
         return isOutputScriptConvertibleToAddress(output) ?
