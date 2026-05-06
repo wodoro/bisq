@@ -21,6 +21,7 @@ import bisq.core.btc.model.AddressEntry;
 import bisq.core.btc.model.RawTransactionInput;
 import bisq.core.btc.exceptions.TransactionVerificationException;
 import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.wallet.WalletUtils;
 import bisq.core.offer.Offer;
 import bisq.core.trade.model.bisq_v1.Trade;
 import bisq.core.trade.protocol.bisq_v1.model.TradingPeer;
@@ -30,7 +31,10 @@ import bisq.common.crypto.Hash;
 import bisq.common.taskrunner.TaskRunner;
 
 import org.bitcoinj.core.Coin;
+import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.TransactionInput;
+import org.bitcoinj.script.ScriptPattern;
 
 import java.util.Arrays;
 import java.util.List;
@@ -92,6 +96,10 @@ public class BuyerAsTakerSignsDepositTx extends TradeTask {
                     offer.getAmount(),
                     checkNotNull(trade.getAmount()),
                     sellerInputs);
+            // Reject any maker funding input that is not strictly P2WPKH. P2WSH and legacy
+            // P2PKH inputs let the network mutate the deposit txid before it confirms, which
+            // would invalidate the buyer-signed DPT and lock funds in the multisig output.
+            verifyMakerInputsAreP2WPKHAndTxIsNonMalleable(makersDepositTx, sellerInputs, walletService.getParams());
 
             Transaction depositTx = processModel.getTradeWalletService().takerSignsDepositTx(
                     false,
@@ -142,6 +150,36 @@ public class BuyerAsTakerSignsDepositTx extends TradeTask {
         Coin makerChangeOutput = makersDepositTx.getOutput(1).getValue();
         if (!makerChangeOutput.equals(expectedMakerChange)) {
             throw new TransactionVerificationException("Maker's preparedDepositTx change output value does not match the expected maker change");
+        }
+    }
+
+    static void verifyMakerInputsAreP2WPKHAndTxIsNonMalleable(Transaction makersDepositTx,
+                                                              List<RawTransactionInput> makerInputs,
+                                                              NetworkParameters params)
+            throws TransactionVerificationException {
+        if (makersDepositTx.getLockTime() != 0) {
+            throw new TransactionVerificationException("Maker's preparedDepositTx must have lockTime == 0");
+        }
+        for (RawTransactionInput input : makerInputs) {
+            try {
+                if (!ScriptPattern.isP2WPKH(WalletUtils.getConnectedOutPoint(input, params)
+                        .getConnectedOutput().getScriptPubKey())) {
+                    throw new TransactionVerificationException("All maker inputs must be P2WPKH");
+                }
+            } catch (TransactionVerificationException e) {
+                throw e;
+            } catch (Exception e) {
+                throw new TransactionVerificationException("Could not validate maker input as P2WPKH: " + e.getMessage());
+            }
+        }
+        for (TransactionInput txIn : makersDepositTx.getInputs()) {
+            // Default sequence in bitcoinj signed segwit txs is 0xfffffffe (BIP125 signal off).
+            // Anything below 0xfffffffe enables RBF and breaks the malleability assumption the
+            // DPT relies on; 0xffffffff is the only other acceptable canonical "final" value.
+            long seq = txIn.getSequenceNumber();
+            if (seq != 0xfffffffeL && seq != 0xffffffffL) {
+                throw new TransactionVerificationException("Maker's preparedDepositTx input has unexpected sequence: " + seq);
+            }
         }
     }
 }

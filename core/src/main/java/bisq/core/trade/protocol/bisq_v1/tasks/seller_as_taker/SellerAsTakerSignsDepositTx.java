@@ -21,6 +21,7 @@ import bisq.core.btc.model.AddressEntry;
 import bisq.core.btc.model.RawTransactionInput;
 import bisq.core.btc.exceptions.TransactionVerificationException;
 import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.wallet.WalletUtils;
 import bisq.core.offer.Offer;
 import bisq.core.trade.model.bisq_v1.Contract;
 import bisq.core.trade.model.bisq_v1.Trade;
@@ -30,7 +31,10 @@ import bisq.core.trade.protocol.bisq_v1.tasks.TradeTask;
 import bisq.common.taskrunner.TaskRunner;
 
 import org.bitcoinj.core.Coin;
+import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.TransactionInput;
+import org.bitcoinj.script.ScriptPattern;
 
 import java.util.Arrays;
 import java.util.List;
@@ -80,6 +84,9 @@ public class SellerAsTakerSignsDepositTx extends TradeTask {
             List<RawTransactionInput> buyerInputs = checkNotNull(tradingPeer.getRawTransactionInputs());
             Transaction makersDepositTx = new Transaction(walletService.getParams(), checkNotNull(processModel.getPreparedDepositTx()));
             verifyPreparedDepositTxFromBuyerAsMaker(makersDepositTx);
+            // Reject any maker funding input that is not strictly P2WPKH and any non-default
+            // sequence/locktime that would make the deposit tx malleable.
+            verifyMakerInputsAreP2WPKHAndTxIsNonMalleable(makersDepositTx, buyerInputs, walletService.getParams());
 
             Transaction depositTx = processModel.getTradeWalletService().takerSignsDepositTx(
                     true,
@@ -109,6 +116,33 @@ public class SellerAsTakerSignsDepositTx extends TradeTask {
         int outputCount = makersDepositTx.getOutputs().size();
         if (outputCount != 1) {
             throw new TransactionVerificationException("Maker's preparedDepositTx must not have a change output");
+        }
+    }
+
+    static void verifyMakerInputsAreP2WPKHAndTxIsNonMalleable(Transaction makersDepositTx,
+                                                              List<RawTransactionInput> makerInputs,
+                                                              NetworkParameters params)
+            throws TransactionVerificationException {
+        if (makersDepositTx.getLockTime() != 0) {
+            throw new TransactionVerificationException("Maker's preparedDepositTx must have lockTime == 0");
+        }
+        for (RawTransactionInput input : makerInputs) {
+            try {
+                if (!ScriptPattern.isP2WPKH(WalletUtils.getConnectedOutPoint(input, params)
+                        .getConnectedOutput().getScriptPubKey())) {
+                    throw new TransactionVerificationException("All maker inputs must be P2WPKH");
+                }
+            } catch (TransactionVerificationException e) {
+                throw e;
+            } catch (Exception e) {
+                throw new TransactionVerificationException("Could not validate maker input as P2WPKH: " + e.getMessage());
+            }
+        }
+        for (TransactionInput txIn : makersDepositTx.getInputs()) {
+            long seq = txIn.getSequenceNumber();
+            if (seq != 0xfffffffeL && seq != 0xffffffffL) {
+                throw new TransactionVerificationException("Maker's preparedDepositTx input has unexpected sequence: " + seq);
+            }
         }
     }
 }
