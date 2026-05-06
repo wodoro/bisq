@@ -34,11 +34,17 @@ public class TakerVerifyMakerFeePayment extends TradeTask {
     protected void run() {
         try {
             runInterceptHook();
-            //TODO impl. missing
-            // int numOfPeersSeenTx = processModel.getWalletService().getNumOfPeersSeenTx(processModel.getTakeOfferFeeTxId().getHashAsString());
-       /* if (numOfPeersSeenTx > 2) {
-            resultHandler.handleResult();
-        }*/
+            // This task is currently a no-op. Historically it was meant to confirm that the
+            // maker's trade-fee tx has been seen on the wire. The actual verification was never
+            // implemented. Until it is, log a warning so the gap is visible in operator logs.
+            //
+            // Reference impl sketch:
+            //   int n = processModel.getWalletService().getNumOfPeersSeenTx(...maker fee txid...);
+            //   if (n > 2) complete(); else failed("...not seen yet...");
+            //
+            // Tracked as risk #12 in /findings/07_risks_ranked.md.
+            log.warn("TakerVerifyMakerFeePayment is a no-op. Maker fee tx is not validated as broadcast. tradeId={}",
+                    trade.getId());
             complete();
         } catch (Throwable t) {
             failed(t);
