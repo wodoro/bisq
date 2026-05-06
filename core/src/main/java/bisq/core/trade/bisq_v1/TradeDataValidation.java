@@ -17,7 +17,9 @@
 
 package bisq.core.trade.bisq_v1;
 
+import bisq.core.btc.model.RawTransactionInput;
 import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.btc.wallet.WalletUtils;
 import bisq.core.offer.Offer;
 import bisq.core.support.dispute.DisputeValidation;
 import bisq.core.trade.model.bisq_v1.Trade;
@@ -28,6 +30,9 @@ import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionInput;
 import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.TransactionOutput;
+import org.bitcoinj.script.ScriptPattern;
+
+import java.util.List;
 
 import java.util.function.Consumer;
 
@@ -154,6 +159,56 @@ public class TradeDataValidation {
                     "\nContract Maker tx=" + contractMakerTxId + " Contract Taker tx=" + contractTakerTxId +
                     "\nDeposit Input0=" + txIdInput0 + " Deposit Input1=" + txIdInput1);
             throw new InvalidTxException(errMsg);
+        }
+    }
+
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Bitcoin tx structural checks
+    ///////////////////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Throws if the tx has a non-zero locktime. A non-zero lockTime makes the tx
+     * non-final until the height/time is reached, breaking the broadcast assumption.
+     */
+    public static void assertLockTimeIsZero(Transaction tx) throws InvalidTxException {
+        if (tx.getLockTime() != 0) {
+            throw new InvalidTxException("Transaction must have lockTime == 0, got " + tx.getLockTime());
+        }
+    }
+
+    /**
+     * Throws if every input sequence is not the canonical "final" value.
+     * Anything below 0xfffffffe enables BIP125 RBF and breaks the malleability assumption
+     * that downstream tx structures (DPT, etc.) rely on.
+     */
+    public static void assertInputSequencesAreFinal(Transaction tx) throws InvalidTxException {
+        for (TransactionInput txIn : tx.getInputs()) {
+            long seq = txIn.getSequenceNumber();
+            if (seq != 0xfffffffeL && seq != 0xffffffffL) {
+                throw new InvalidTxException("Transaction input has non-final sequence: " + seq);
+            }
+        }
+    }
+
+    /**
+     * Throws unless every supplied funding input refers to a P2WPKH UTXO. P2WSH and legacy
+     * P2PKH inputs let the network mutate the txid before it confirms, breaking any
+     * downstream tx that references this txid (e.g. the DPT).
+     */
+    public static void assertAllInputsAreP2WPKH(List<RawTransactionInput> inputs,
+                                                NetworkParameters params) throws InvalidTxException {
+        for (RawTransactionInput input : inputs) {
+            try {
+                if (!ScriptPattern.isP2WPKH(WalletUtils.getConnectedOutPoint(input, params)
+                        .getConnectedOutput().getScriptPubKey())) {
+                    throw new InvalidTxException("All funding inputs must be P2WPKH");
+                }
+            } catch (InvalidTxException e) {
+                throw e;
+            } catch (Exception e) {
+                throw new InvalidTxException("Could not validate input as P2WPKH: " + e.getMessage());
+            }
         }
     }
 
