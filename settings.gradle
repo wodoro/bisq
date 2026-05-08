@@ -22,6 +22,7 @@ toolchainManagement {
 include 'proto'
 include 'assets'
 include 'btcnodemonitor'
+include 'burningman-dump'
 include 'common'
 include 'p2p'
 include 'core'
