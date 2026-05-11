@@ -40,6 +40,8 @@ import bisq.common.taskrunner.TaskRunner;
 
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Objects;
+
 import javax.annotation.Nullable;
 
 @Slf4j
@@ -70,8 +72,13 @@ public class OfferAvailabilityProtocol {
                 OfferMessage offerMessage = (OfferMessage) networkEnvelope;
                 Validator.nonEmptyStringOf(offerMessage.offerId);
                 if (networkEnvelope instanceof OfferAvailabilityResponse
-                        && model.getOffer().getId().equals(offerMessage.offerId)
-                        && peersNodeAddress.equals(model.getPeerNodeAddress())) {
+                        && model.getOffer().getId().equals(offerMessage.offerId)) {
+                    NodeAddress expectedPeer = model.getPeerNodeAddress();
+                    if (!Objects.equals(peersNodeAddress, expectedPeer)) {
+                        log.warn("Ignoring OfferAvailabilityResponse for offerId {} from unexpected peer {}, expected {}",
+                                offerMessage.offerId, peersNodeAddress, expectedPeer);
+                        return;
+                    }
                     handleOfferAvailabilityResponse((OfferAvailabilityResponse) networkEnvelope, peersNodeAddress);
                 }
             }
@@ -92,8 +99,8 @@ public class OfferAvailabilityProtocol {
         // reset
         model.getOffer().setState(Offer.State.UNKNOWN);
 
-        model.getP2PService().addDecryptedDirectMessageListener(decryptedDirectMessageListener);
         model.setPeerNodeAddress(model.getOffer().getMakerNodeAddress());
+        model.getP2PService().addDecryptedDirectMessageListener(decryptedDirectMessageListener);
 
         taskRunner = new TaskRunner<>(model,
                 () -> handleTaskRunnerSuccess("TaskRunner at sendOfferAvailabilityRequest completed", null),
