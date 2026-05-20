@@ -66,8 +66,11 @@ class InputsForDepositTxRequestValidationTest {
 
     @Test
     void checkInputsForDepositTxRequestRejectsTxFeeOutsideAllowedTolerance() throws CryptoException {
+        // Fixture builds the request at a low txFeePerVbyte which FeeService.updateFeeInfo
+        // clamps up to the network minimum (15). To stay outside the 2x deviation tolerance
+        // we override the validator's FeeService well above 2 * networkMin.
         InputsForDepositTxRequestValidationFixture fixture = inputsForDepositTxRequestValidationFixture(null);
-        FeeService feeService = configureTradeFeeService(Coin.valueOf(77), Coin.valueOf(100), 10);
+        FeeService feeService = configureTradeFeeService(Coin.valueOf(77), Coin.valueOf(100), 64);
 
         assertThrows(IllegalArgumentException.class, () -> InputsForDepositTxRequestValidation.checkInputsForDepositTxRequest(fixture.request,
                 fixture.offer,
