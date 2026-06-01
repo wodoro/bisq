@@ -21,7 +21,7 @@ import bisq.core.util.coin.CoinFormatter;
 
 import org.bitcoinj.core.Coin;
 
-import com.jfoenix.controls.JFXTextField;
+import bisq.desktop.components.controls.BisqJfxTextField;
 
 import javafx.scene.effect.BlurType;
 import javafx.scene.effect.DropShadow;
@@ -34,7 +34,7 @@ import javax.annotation.Nullable;
 public class BalanceTextField extends AnchorPane {
 
     private Coin targetAmount;
-    private final JFXTextField textField;
+    private final BisqJfxTextField textField;
     private final Effect fundedEffect = new DropShadow(BlurType.THREE_PASS_BOX, Color.GREEN, 4, 0.0, 0, 0);
     private final Effect notFundedEffect = new DropShadow(BlurType.THREE_PASS_BOX, Color.ORANGERED, 4, 0.0, 0, 0);
     private CoinFormatter formatter;

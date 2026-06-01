@@ -22,7 +22,7 @@ import bisq.desktop.components.controlsfx.control.PopOver;
 import de.jensd.fx.fontawesome.AwesomeIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 
-import com.jfoenix.controls.JFXTextField;
+import bisq.desktop.components.controls.BisqJfxTextField;
 
 import javafx.scene.Node;
 import javafx.scene.control.Label;
@@ -44,7 +44,7 @@ public class InfoTextField extends AnchorPane {
     public static final Logger log = LoggerFactory.getLogger(InfoTextField.class);
 
     @Getter
-    protected final JFXTextField textField;
+    protected final BisqJfxTextField textField;
 
     private final StringProperty text = new SimpleStringProperty();
     protected final Label infoIcon;

@@ -29,7 +29,7 @@ import org.bitcoinj.core.Coin;
 import de.jensd.fx.fontawesome.AwesomeDude;
 import de.jensd.fx.fontawesome.AwesomeIcon;
 
-import com.jfoenix.controls.JFXTextField;
+import bisq.desktop.components.controls.BisqJfxTextField;
 
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
@@ -59,7 +59,7 @@ public class AddressTextField extends AnchorPane {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public AddressTextField(String label) {
-        JFXTextField textField = new BisqTextField();
+        BisqJfxTextField textField = new BisqTextField();
         textField.setId("address-text-field");
         textField.setEditable(false);
         textField.setLabelFloat(true);

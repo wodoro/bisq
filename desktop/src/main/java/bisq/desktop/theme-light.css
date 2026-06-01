@@ -135,3 +135,50 @@
 .progress-bar > .secondary-bar {
     -fx-background-color: -bs-color-gray-3;
 }
+
+/*
+ * Light-mode toggle: revert disabled state to solid gray (no derive-lightened fills) so contrast
+ * doesn't wash out on a white background. Dark-mode keeps the lighter rule from bisq-controls.css.
+ */
+.toggle-button.jfx-toggle-button:disabled > .track {
+    -fx-background-color: -bs-color-gray-bbb;
+    -fx-opacity: 1;
+}
+
+.toggle-button.jfx-toggle-button:disabled > .thumb,
+.toggle-button.jfx-toggle-button:disabled:selected > .thumb {
+    -fx-background-color: -bs-color-gray-line;
+    -fx-opacity: 1;
+}
+
+.toggle-button.jfx-toggle-button:disabled:selected > .track {
+    -fx-background-color: derive(-bs-color-gray-bbb, -10%);
+    -fx-opacity: 1;
+}
+
+/* Light-mode underline: gray idle + accent (green) when focused. Dark mode keeps them
+ * transparent via theme-dark.css. The skin animates `.input-focused-line` scaleX 0→1 on focus,
+ * so giving it a colour here makes the green bar appear on focus and shrink away on blur. */
+.jfx-text-field > .input-line,
+.jfx-password-field > .input-line,
+.jfx-text-area  > .input-line,
+.jfx-combo-box   > .input-line {
+    -fx-background-color: -bs-color-gray-bbb;
+}
+
+.jfx-text-field > .input-focused-line,
+.jfx-password-field > .input-focused-line,
+.jfx-text-area  > .input-focused-line,
+.jfx-combo-box   > .input-focused-line {
+    -fx-background-color: -fx-accent;
+}
+
+.jfx-text-field:readonly > .input-line,
+.jfx-text-field:disabled > .input-line,
+.jfx-password-field:readonly > .input-line,
+.jfx-password-field:disabled > .input-line,
+.jfx-text-area:readonly > .input-line,
+.jfx-text-area:disabled > .input-line {
+    -fx-background-color: transparent;
+}
+
