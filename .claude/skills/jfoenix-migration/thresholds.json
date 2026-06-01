@@ -1,0 +1,19 @@
+{
+  "default": { "ae_max": 0, "fuzz_pct": 0 },
+  "components": {
+    "button":         { "ae_max": 0,    "fuzz_pct": 0 },
+    "check-box":      { "ae_max": 0,    "fuzz_pct": 0 },
+    "radio-button":   { "ae_max": 0,    "fuzz_pct": 0 },
+    "toggle-button":  { "ae_max": 0,    "fuzz_pct": 0 },
+    "progress-bar":   { "ae_max": 0,    "fuzz_pct": 0 },
+    "spinner":        { "ae_max": 50,   "fuzz_pct": 1 },
+    "text-field":     { "ae_max": 30,   "fuzz_pct": 1 },
+    "text-area":      { "ae_max": 30,   "fuzz_pct": 1 },
+    "password-field": { "ae_max": 30,   "fuzz_pct": 1 },
+    "combo-box":      { "ae_max": 30,   "fuzz_pct": 1 },
+    "tab-pane":       { "ae_max": 100,  "fuzz_pct": 2 },
+    "badge":          { "ae_max": 0,    "fuzz_pct": 0 },
+    "snackbar":       { "ae_max": 50,   "fuzz_pct": 1 },
+    "rippler":        { "ae_max": 200,  "fuzz_pct": 2 }
+  }
+}

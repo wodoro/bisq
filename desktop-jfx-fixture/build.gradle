@@ -1,0 +1,73 @@
+plugins {
+    id 'bisq.application'
+    id 'bisq.javafx'
+}
+
+// Switch main + JVM args based on -Pinteractive=true (real display, real Prism).
+// Default = headless snapshot fixture used by the diff sweep skill.
+def isInteractive = project.hasProperty('interactive')
+
+// Exports that jfoenix needs to access JavaFX internal packages on Java 21 — required for
+// both modes whenever jfoenix code runs (it's on the classpath for the jfx baseline side).
+def jfoenixExports = [
+        '--add-exports=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED',
+        '--add-exports=javafx.controls/com.sun.javafx.scene.control=ALL-UNNAMED',
+        '--add-exports=javafx.controls/com.sun.javafx.scene.control.behavior=ALL-UNNAMED',
+        '--add-opens=javafx.controls/javafx.scene.control.skin=ALL-UNNAMED',
+        '--add-opens=javafx.graphics/javafx.scene=ALL-UNNAMED',
+        '--add-opens=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED',
+]
+
+application {
+    mainClass = isInteractive
+            ? 'bisq.desktop.jfxfixture.BisqJfxInteractiveApp'
+            : 'bisq.desktop.jfxfixture.BisqJfxFixtureApp'
+    applicationDefaultJvmArgs = (isInteractive ? jfoenixExports : [
+            // Headless JavaFX: Monocle SW pipeline. No display, no GPU.
+            '-Djava.awt.headless=true',
+            '-Dglass.platform=Monocle',
+            '-Dmonocle.platform=Headless',
+            '-Dprism.order=sw',
+            '-Dprism.lcdtext=false',
+            '-Dprism.text=t2k',
+            // openjfx-monocle subclasses internal Glass/Quantum classes — needs these exports.
+            '--add-exports=javafx.graphics/com.sun.glass.ui=ALL-UNNAMED',
+            '--add-exports=javafx.graphics/com.sun.glass.utils=ALL-UNNAMED',
+            '--add-exports=javafx.graphics/com.sun.javafx.util=ALL-UNNAMED',
+            '--add-exports=javafx.base/com.sun.javafx.logging=ALL-UNNAMED',
+            '--add-exports=javafx.graphics/com.sun.javafx.geom=ALL-UNNAMED',
+            '--add-exports=javafx.graphics/com.sun.javafx.tk=ALL-UNNAMED',
+            '--add-exports=javafx.graphics/com.sun.prism=ALL-UNNAMED',
+            '--add-exports=javafx.graphics/com.sun.prism.image=ALL-UNNAMED',
+            // Reflection access for jfoenix skins (baseline side).
+            '--add-exports=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED',
+            '--add-exports=javafx.controls/com.sun.javafx.scene.control=ALL-UNNAMED',
+            '--add-exports=javafx.controls/com.sun.javafx.scene.control.behavior=ALL-UNNAMED',
+            '--add-opens=javafx.controls/javafx.scene.control.skin=ALL-UNNAMED',
+            '--add-opens=javafx.graphics/javafx.scene=ALL-UNNAMED',
+            '--add-opens=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED',
+    ])
+}
+
+javafx {
+    modules = ['javafx.controls', 'javafx.fxml', 'javafx.swing']
+}
+
+sourceSets.main.resources.srcDirs += ['src/main/java']
+
+dependencies {
+    implementation enforcedPlatform(project(':platform'))
+    implementation project(':desktop')
+    implementation libs.jfoenix
+    implementation 'org.testfx:openjfx-monocle:21.0.2'
+    implementation libs.jetbrains.annotations
+    implementation libs.slf4j.api
+    implementation libs.logback.classic
+    implementation libs.logback.core
+    annotationProcessor libs.lombok
+    compileOnly libs.lombok
+}
+
+// Launch interactive comparison window via:
+//   ./gradlew :desktop-jfx-fixture:run -Pinteractive
+// Reuses application plugin's run task so openjfx-javafx-plugin's module-path wiring applies.

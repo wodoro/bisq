@@ -53,3 +53,4 @@ deploy
 
 # Directory for temp files
 /temp
+.jfx-fixture/
