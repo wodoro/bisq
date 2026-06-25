@@ -20,12 +20,14 @@ package bisq.core.trade.validation;
 import bisq.core.btc.model.RawTransactionInput;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.btc.wallet.TradeWalletService;
+import bisq.core.btc.wallet.Restrictions;
 import bisq.core.btc.wallet.WalletUtils;
 import bisq.core.btc.wallet.utils.DepositTransactionUtils;
 import bisq.core.offer.Offer;
 import bisq.core.trade.model.bisq_v1.Contract;
 import bisq.core.trade.model.bisq_v1.Trade;
 import bisq.core.trade.validation.exceptions.InvalidTxException;
+import bisq.core.util.coin.CoinUtil;
 
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.NetworkParameters;
@@ -100,6 +102,18 @@ public final class DepositTxValidation {
         Coin sellerSecurityDeposit = checkNotNull(checkedOffer.getSellerSecurityDeposit(),
                 "offer.getSellerSecurityDeposit() must not be null");
 
+        // The security-deposit amounts are maker-controlled and flow straight into the multisig
+        // output and the payout math. The maker-side bounds in ValidateOffer are disabled, so the
+        // taker must re-derive them here: a maker could otherwise publish an offer locking near-zero
+        // (or negative) collateral while the honest taker locks full value, removing the deposit
+        // deterrent and skewing mediation payout math. Both legs are floored at the absolute min
+        // deposit and capped at the max buyer-deposit percent of the offer amount (a generous
+        // ceiling that no legitimate offer exceeds).
+        checkSecurityDepositInBounds(buyerSecurityDeposit, offerAmount,
+                Restrictions.getMinBuyerSecurityDepositAsCoin(), "buyerSecurityDeposit");
+        checkSecurityDepositInBounds(sellerSecurityDeposit, offerAmount,
+                Restrictions.getMinSellerSecurityDepositAsCoin(), "sellerSecurityDeposit");
+
         checkArgument(!checkedTradeAmount.isLessThan(offerMinAmount),
                 "tradeAmount must not be less than offerMinAmount");
         checkArgument(!checkedTradeAmount.isGreaterThan(offerAmount),
@@ -141,6 +155,23 @@ public final class DepositTxValidation {
                 buyerPubKey,
                 sellerPubKey);
         return checkedPreparedDepositTx;
+    }
+
+    /**
+     * Throws unless a maker-supplied security-deposit amount sits within the protocol bounds:
+     * at least the absolute min deposit and at most the max buyer-deposit percent of the offer
+     * amount (floored to the min deposit for tiny amounts). This re-applies, on the taker's
+     * receiving side, the bounds the maker-side ValidateOffer no longer enforces.
+     */
+    @VisibleForTesting
+    static void checkSecurityDepositInBounds(Coin deposit, Coin offerAmount, Coin minDeposit, String name) {
+        checkNotNull(deposit, "%s must not be null", name);
+        checkArgument(!deposit.isLessThan(minDeposit),
+                "%s must not be less than the min deposit. actual=%s, min=%s", name, deposit, minDeposit);
+        Coin maxByPercent = CoinUtil.getPercentOfAmountAsCoin(Restrictions.getMaxBuyerSecurityDepositAsPercent(), offerAmount);
+        Coin maxDeposit = maxByPercent.isLessThan(minDeposit) ? minDeposit : maxByPercent;
+        checkArgument(!deposit.isGreaterThan(maxDeposit),
+                "%s must not be greater than the max deposit. actual=%s, max=%s", name, deposit, maxDeposit);
     }
 
 

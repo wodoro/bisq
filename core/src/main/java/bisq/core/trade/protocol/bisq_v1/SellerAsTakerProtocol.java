@@ -97,7 +97,15 @@ public class SellerAsTakerProtocol extends SellerProtocol implements TakerProtoc
     private void handle(InputsForDepositTxResponse message, NodeAddress peer) {
         expect(phase(Trade.Phase.INIT)
                 .with(message)
-                .from(peer))
+                .from(peer)
+                .preCondition(processModel.getPreparedDepositTx() == null,
+                        () -> {
+                            log.warn("We received an InputsForDepositTxResponse but we have already processed one " +
+                                    "(preparedDepositTx is set) so we ignore the message. This prevents a duplicate " +
+                                    "response from overwriting the peer multisig key, payout address, inputs and " +
+                                    "prepared deposit tx while the trade state has not yet advanced. We send another ACK msg.");
+                            sendAckMessage(message, true, null);
+                        }))
                 .setup(tasks(
                         TakerProcessesInputsForDepositTxResponse.class,
                         ApplyFilter.class,

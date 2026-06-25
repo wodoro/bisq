@@ -34,6 +34,8 @@ import lombok.extern.slf4j.Slf4j;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 /**
  * TxOutput used in RawTx. Containing only immutable bitcoin specific fields.
  * Sent over wire.
@@ -80,6 +82,11 @@ public final class RawTxOutput extends BaseTxOutput implements NetworkPayload, C
     }
 
     public static RawTxOutput fromProto(protobuf.BaseTxOutput proto) {
+        // The value is a peer-supplied int64. A negative value is never valid for a Bitcoin output
+        // and, if trusted, would *increase* the running input balance in TxOutputParser (the same
+        // arithmetic the historical negative-fee primitive exploited). Reject it at the decode
+        // boundary so a lite node cannot be fed a value that corrupts its local DAO state.
+        checkArgument(proto.getValue() >= 0, "RawTxOutput value must not be negative, got %s", proto.getValue());
         return new RawTxOutput(proto.getIndex(),
                 proto.getValue(),
                 proto.getTxId(),

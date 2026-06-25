@@ -219,19 +219,19 @@ class DepositTxValidationTest {
     @Test
     void checkMakersPreparedDepositTxAcceptsBuyerAsMakerTx() {
         Offer offer = offer(true,
-                Coin.valueOf(10_000),
-                Coin.valueOf(20_000),
+                Coin.valueOf(30_000),
+                Coin.valueOf(30_000),
                 Coin.valueOf(10_000),
                 Coin.valueOf(150_000));
         Coin tradeAmount = Coin.valueOf(100_000);
         Coin tradeTxFee = Coin.valueOf(5_000);
-        List<RawTransactionInput> makerInputs = Collections.singletonList(rawInput(parentTxWithP2wpkhOutput(10_000)));
-        List<RawTransactionInput> takerInputs = Collections.singletonList(rawInput(parentTxWithP2wpkhOutput(130_000)));
+        List<RawTransactionInput> makerInputs = Collections.singletonList(rawInput(parentTxWithP2wpkhOutput(30_000)));
+        List<RawTransactionInput> takerInputs = Collections.singletonList(rawInput(parentTxWithP2wpkhOutput(140_000)));
         Transaction preparedDepositTx = preparedDepositTx(
                 orderedInputs(makerInputs, takerInputs, true),
                 BUYER_MULTI_SIG_KEY.getPubKey(),
                 SELLER_MULTI_SIG_KEY.getPubKey(),
-                135_000);
+                165_000);
 
         assertSame(preparedDepositTx,
                 DepositTxValidation.checkMakersPreparedDepositTx(preparedDepositTx,
@@ -248,19 +248,19 @@ class DepositTxValidationTest {
     @Test
     void checkMakersPreparedDepositTxAcceptsSellerAsMakerTxWithExpectedChange() {
         Offer offer = offer(false,
-                Coin.valueOf(10_000),
-                Coin.valueOf(20_000),
+                Coin.valueOf(30_000),
+                Coin.valueOf(30_000),
                 Coin.valueOf(10_000),
                 Coin.valueOf(150_000));
         Coin tradeAmount = Coin.valueOf(100_000);
         Coin tradeTxFee = Coin.valueOf(5_000);
-        List<RawTransactionInput> makerInputs = Collections.singletonList(rawInput(parentTxWithP2wpkhOutput(170_000)));
-        List<RawTransactionInput> takerInputs = Collections.singletonList(rawInput(parentTxWithP2wpkhOutput(20_000)));
+        List<RawTransactionInput> makerInputs = Collections.singletonList(rawInput(parentTxWithP2wpkhOutput(180_000)));
+        List<RawTransactionInput> takerInputs = Collections.singletonList(rawInput(parentTxWithP2wpkhOutput(40_000)));
         Transaction preparedDepositTx = preparedDepositTx(
                 orderedInputs(makerInputs, takerInputs, false),
                 BUYER_MULTI_SIG_KEY.getPubKey(),
                 SELLER_MULTI_SIG_KEY.getPubKey(),
-                135_000,
+                165_000,
                 50_000);
 
         assertSame(preparedDepositTx,
@@ -278,19 +278,19 @@ class DepositTxValidationTest {
     @Test
     void checkMakersPreparedDepositTxRejectsWrongInputOrder() {
         Offer offer = offer(false,
-                Coin.valueOf(10_000),
-                Coin.valueOf(20_000),
+                Coin.valueOf(30_000),
+                Coin.valueOf(30_000),
                 Coin.valueOf(10_000),
                 Coin.valueOf(150_000));
         Coin tradeAmount = Coin.valueOf(100_000);
         Coin tradeTxFee = Coin.valueOf(5_000);
-        List<RawTransactionInput> makerInputs = Collections.singletonList(rawInput(parentTxWithP2wpkhOutput(170_000)));
-        List<RawTransactionInput> takerInputs = Collections.singletonList(rawInput(parentTxWithP2wpkhOutput(20_000)));
+        List<RawTransactionInput> makerInputs = Collections.singletonList(rawInput(parentTxWithP2wpkhOutput(180_000)));
+        List<RawTransactionInput> takerInputs = Collections.singletonList(rawInput(parentTxWithP2wpkhOutput(40_000)));
         Transaction preparedDepositTx = preparedDepositTx(
                 orderedInputs(makerInputs, takerInputs, true),
                 BUYER_MULTI_SIG_KEY.getPubKey(),
                 SELLER_MULTI_SIG_KEY.getPubKey(),
-                135_000,
+                165_000,
                 50_000);
 
         assertThrows(IllegalArgumentException.class,
@@ -347,19 +347,19 @@ class DepositTxValidationTest {
     @Test
     void checkMakersPreparedDepositTxRejectsWrongMultisigOutputAmount() {
         Offer offer = offer(false,
-                Coin.valueOf(10_000),
-                Coin.valueOf(20_000),
+                Coin.valueOf(30_000),
+                Coin.valueOf(30_000),
                 Coin.valueOf(10_000),
                 Coin.valueOf(150_000));
         Coin tradeAmount = Coin.valueOf(100_000);
         Coin tradeTxFee = Coin.valueOf(5_000);
-        List<RawTransactionInput> makerInputs = Collections.singletonList(rawInput(parentTxWithP2wpkhOutput(170_000)));
-        List<RawTransactionInput> takerInputs = Collections.singletonList(rawInput(parentTxWithP2wpkhOutput(20_000)));
+        List<RawTransactionInput> makerInputs = Collections.singletonList(rawInput(parentTxWithP2wpkhOutput(180_000)));
+        List<RawTransactionInput> takerInputs = Collections.singletonList(rawInput(parentTxWithP2wpkhOutput(40_000)));
         Transaction preparedDepositTx = preparedDepositTx(
                 orderedInputs(makerInputs, takerInputs, false),
                 BUYER_MULTI_SIG_KEY.getPubKey(),
                 SELLER_MULTI_SIG_KEY.getPubKey(),
-                134_999,
+                164_999,
                 50_000);
 
         assertThrows(IllegalArgumentException.class,
@@ -377,19 +377,19 @@ class DepositTxValidationTest {
     @Test
     void checkMakersPreparedDepositTxRejectsWrongMultisigOutputScript() {
         Offer offer = offer(false,
-                Coin.valueOf(10_000),
-                Coin.valueOf(20_000),
+                Coin.valueOf(30_000),
+                Coin.valueOf(30_000),
                 Coin.valueOf(10_000),
                 Coin.valueOf(150_000));
         Coin tradeAmount = Coin.valueOf(100_000);
         Coin tradeTxFee = Coin.valueOf(5_000);
-        List<RawTransactionInput> makerInputs = Collections.singletonList(rawInput(parentTxWithP2wpkhOutput(170_000)));
-        List<RawTransactionInput> takerInputs = Collections.singletonList(rawInput(parentTxWithP2wpkhOutput(20_000)));
+        List<RawTransactionInput> makerInputs = Collections.singletonList(rawInput(parentTxWithP2wpkhOutput(180_000)));
+        List<RawTransactionInput> takerInputs = Collections.singletonList(rawInput(parentTxWithP2wpkhOutput(40_000)));
         Transaction preparedDepositTx = preparedDepositTx(
                 orderedInputs(makerInputs, takerInputs, false),
                 new ECKey().getPubKey(),
                 SELLER_MULTI_SIG_KEY.getPubKey(),
-                135_000,
+                165_000,
                 50_000);
 
         assertThrows(IllegalArgumentException.class,
@@ -407,19 +407,19 @@ class DepositTxValidationTest {
     @Test
     void checkMakersPreparedDepositTxRejectsExtraSiphonOutput() {
         Offer offer = offer(false,
-                Coin.valueOf(10_000),
-                Coin.valueOf(20_000),
+                Coin.valueOf(30_000),
+                Coin.valueOf(30_000),
                 Coin.valueOf(10_000),
                 Coin.valueOf(150_000));
         Coin tradeAmount = Coin.valueOf(100_000);
         Coin tradeTxFee = Coin.valueOf(5_000);
-        List<RawTransactionInput> makerInputs = Collections.singletonList(rawInput(parentTxWithP2wpkhOutput(170_000)));
-        List<RawTransactionInput> takerInputs = Collections.singletonList(rawInput(parentTxWithP2wpkhOutput(20_000)));
+        List<RawTransactionInput> makerInputs = Collections.singletonList(rawInput(parentTxWithP2wpkhOutput(180_000)));
+        List<RawTransactionInput> takerInputs = Collections.singletonList(rawInput(parentTxWithP2wpkhOutput(40_000)));
         Transaction preparedDepositTx = preparedDepositTx(
                 orderedInputs(makerInputs, takerInputs, false),
                 BUYER_MULTI_SIG_KEY.getPubKey(),
                 SELLER_MULTI_SIG_KEY.getPubKey(),
-                135_000,
+                165_000,
                 50_000,
                 1_000);
 
@@ -438,19 +438,82 @@ class DepositTxValidationTest {
     @Test
     void checkMakersPreparedDepositTxRejectsWrongTradeFee() {
         Offer offer = offer(false,
-                Coin.valueOf(10_000),
-                Coin.valueOf(20_000),
+                Coin.valueOf(30_000),
+                Coin.valueOf(30_000),
                 Coin.valueOf(10_000),
                 Coin.valueOf(150_000));
         Coin tradeAmount = Coin.valueOf(100_000);
         Coin tradeTxFee = Coin.valueOf(5_000);
-        List<RawTransactionInput> makerInputs = Collections.singletonList(rawInput(parentTxWithP2wpkhOutput(170_000)));
-        List<RawTransactionInput> takerInputs = Collections.singletonList(rawInput(parentTxWithP2wpkhOutput(21_000)));
+        List<RawTransactionInput> makerInputs = Collections.singletonList(rawInput(parentTxWithP2wpkhOutput(180_000)));
+        List<RawTransactionInput> takerInputs = Collections.singletonList(rawInput(parentTxWithP2wpkhOutput(41_000)));
         Transaction preparedDepositTx = preparedDepositTx(
                 orderedInputs(makerInputs, takerInputs, false),
                 BUYER_MULTI_SIG_KEY.getPubKey(),
                 SELLER_MULTI_SIG_KEY.getPubKey(),
-                135_000,
+                165_000,
+                50_000);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> DepositTxValidation.checkMakersPreparedDepositTx(preparedDepositTx,
+                        offer,
+                        tradeAmount,
+                        tradeTxFee,
+                        makerInputs,
+                        takerInputs,
+                        SELLER_MULTI_SIG_KEY.getPubKey(),
+                        BUYER_MULTI_SIG_KEY.getPubKey(),
+                        PARAMS));
+    }
+
+    @Test
+    void checkMakersPreparedDepositTxRejectsBuyerSecurityDepositBelowMin() {
+        // Maker-controlled buyer deposit set below the protocol min (30_000 sat). The bound check
+        // fires before any tx-shape check, so the rest of the fixture need not be self-consistent.
+        Offer offer = offer(false,
+                Coin.valueOf(10_000),
+                Coin.valueOf(30_000),
+                Coin.valueOf(10_000),
+                Coin.valueOf(150_000));
+        Coin tradeAmount = Coin.valueOf(100_000);
+        Coin tradeTxFee = Coin.valueOf(5_000);
+        List<RawTransactionInput> makerInputs = Collections.singletonList(rawInput(parentTxWithP2wpkhOutput(180_000)));
+        List<RawTransactionInput> takerInputs = Collections.singletonList(rawInput(parentTxWithP2wpkhOutput(40_000)));
+        Transaction preparedDepositTx = preparedDepositTx(
+                orderedInputs(makerInputs, takerInputs, false),
+                BUYER_MULTI_SIG_KEY.getPubKey(),
+                SELLER_MULTI_SIG_KEY.getPubKey(),
+                165_000,
+                50_000);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> DepositTxValidation.checkMakersPreparedDepositTx(preparedDepositTx,
+                        offer,
+                        tradeAmount,
+                        tradeTxFee,
+                        makerInputs,
+                        takerInputs,
+                        SELLER_MULTI_SIG_KEY.getPubKey(),
+                        BUYER_MULTI_SIG_KEY.getPubKey(),
+                        PARAMS));
+    }
+
+    @Test
+    void checkMakersPreparedDepositTxRejectsSellerSecurityDepositAboveMax() {
+        // Seller deposit set above the max (50% of the 150_000 offer amount = 75_000 sat).
+        Offer offer = offer(false,
+                Coin.valueOf(30_000),
+                Coin.valueOf(80_000),
+                Coin.valueOf(10_000),
+                Coin.valueOf(150_000));
+        Coin tradeAmount = Coin.valueOf(100_000);
+        Coin tradeTxFee = Coin.valueOf(5_000);
+        List<RawTransactionInput> makerInputs = Collections.singletonList(rawInput(parentTxWithP2wpkhOutput(180_000)));
+        List<RawTransactionInput> takerInputs = Collections.singletonList(rawInput(parentTxWithP2wpkhOutput(40_000)));
+        Transaction preparedDepositTx = preparedDepositTx(
+                orderedInputs(makerInputs, takerInputs, false),
+                BUYER_MULTI_SIG_KEY.getPubKey(),
+                SELLER_MULTI_SIG_KEY.getPubKey(),
+                165_000,
                 50_000);
 
         assertThrows(IllegalArgumentException.class,

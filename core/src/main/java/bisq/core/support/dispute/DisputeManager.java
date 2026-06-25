@@ -531,6 +531,12 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             return;
         }
 
+        // These checks are advisory on the trader side: a contract / node-address / donation
+        // mismatch does not change our view of the trade or move funds (the payout is re-validated
+        // downstream), and the dispute agent re-validates and gets a popup to react. We log but do
+        // not reject, so a benign mismatch (e.g. cross-version contract serialization skew) cannot
+        // strand an honest trader by dropping their dispute. The log message below names the actual
+        // check group instead of always blaming the donation address.
         try {
             DisputeValidation.validateDisputeData(dispute, btcWalletService);
             DisputeValidation.validateNodeAddresses(dispute, config);
@@ -553,10 +559,10 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 DisputeValidation.validateDonationAddressMatchesAnyPastParamValues(dispute, dispute.getDonationAddressOfDelayedPayoutTx(), daoFacade);
             }
         } catch (DisputeValidation.ValidationException e) {
-            // The peer sent us an invalid donation address. We do not return here as we don't want to break
-            // mediation/arbitration and log only the issue. The dispute agent will run validation as well and will get
-            // a popup displayed to react.
-            log.warn("Donation address is invalid. {}", e.toString());
+            // We do not return here as we don't want to break mediation/arbitration; the dispute
+            // agent re-validates and gets a popup to react.
+            log.warn("Dispute validation issue (dispute data, node addresses, contract, or donation address). {}",
+                    e.toString());
         }
 
         if (!isAgent(dispute)) {
