@@ -180,6 +180,9 @@ public abstract class Overlay<T extends Overlay<T>> {
             secondaryActionButtonText, tertiaryActionButtonText, dontShowAgainId, dontShowAgainText,
             truncatedMessage;
     private ArrayList<String> messageHyperlinks;
+    // When true, [HYPERLINK:] markup is not parsed into clickable links. Use for popups that render
+    // untrusted / peer-supplied content (e.g. dispute report dumps) which must never carry markup.
+    private boolean disableHyperlinks;
     private String headlineStyle;
     protected Button actionButton, secondaryActionButton, tertiaryActionButton;
     private HBox buttonBox;
@@ -424,6 +427,12 @@ public abstract class Overlay<T extends Overlay<T>> {
 
     public T message(String message) {
         preProcessMessage(message);
+        return cast();
+    }
+
+    // Must be called before the message-setting method (information/message/...) to take effect.
+    public T disableHyperlinks() {
+        this.disableHyperlinks = true;
         return cast();
     }
 
@@ -931,7 +940,9 @@ public abstract class Overlay<T extends Overlay<T>> {
             for (int i = 0; i < messageHyperlinks.size(); i++) {
                 Label label = new Label(String.format("[%d]", i + 1));
                 Hyperlink link = new Hyperlink(messageHyperlinks.get(i));
-                link.setOnAction(event -> GUIUtil.openWebPageNoPopup(link.getText()));
+                // Route through openWebPage so the Tor/clear-net confirmation dialog is shown.
+                // These links may originate from untrusted content harvested into the message body.
+                link.setOnAction(event -> GUIUtil.openWebPage(link.getText()));
                 HBox.setMargin(link, new Insets(-2, 0, 0, 0));
                 footerBox.getChildren().addAll(new HBox(label, link));
             }
@@ -1096,18 +1107,31 @@ public abstract class Overlay<T extends Overlay<T>> {
     // referenced in order from within the message via [1], [2] etc.
     // e.g. [HYPERLINK:https://bisq.wiki]
     private void preProcessMessage(String message) {
+        if (disableHyperlinks) {
+            this.message = message;
+            setTruncatedMessage();
+            return;
+        }
         Pattern pattern = Pattern.compile("\\[HYPERLINK:(.*?)\\]");
         Matcher matcher = pattern.matcher(message);
-        String work = message;
+        StringBuffer work = new StringBuffer();
         while (matcher.find()) {  // extract hyperlinks & store in array
+            String url = matcher.group(1);
+            // Only http(s) links are turned into clickable references. 
+            // Any other scheme is rendered as inert text
+            if (!GUIUtil.isHttpUrl(url)) {
+                matcher.appendReplacement(work, Matcher.quoteReplacement(url));
+                continue;
+            }
             if (messageHyperlinks == null) {
                 messageHyperlinks = new ArrayList<>();
             }
-            messageHyperlinks.add(matcher.group(1));
+            messageHyperlinks.add(url);
             // replace hyperlink in message with [n] reference
-            work = work.replaceFirst(pattern.toString(), String.format("[%d]", messageHyperlinks.size()));
+            matcher.appendReplacement(work, String.format("[%d]", messageHyperlinks.size()));
         }
-        this.message = work;
+        matcher.appendTail(work);
+        this.message = work.toString();
         setTruncatedMessage();
     }
 

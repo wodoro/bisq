@@ -307,7 +307,16 @@ public class Utilities {
         return result;
     }
 
+    // Only these schemes may be handed to the OS handler (xdg-open/open/explorer).
+    // Blocks dangerous schemes (e.g. file:, javascript:) from reaching Runtime.exec.
+    // http/https for web pages, bitcoin for BIP21 wallet hand-off.
+    private static final Set<String> ALLOWED_URI_SCHEMES = Set.of("http", "https", "bitcoin");
+
     public static void openURI(URI uri) throws IOException {
+        String scheme = uri.getScheme();
+        if (scheme == null || !ALLOWED_URI_SCHEMES.contains(scheme.toLowerCase(Locale.ROOT))) {
+            throw new IOException("Refused to open URI with disallowed scheme: " + uri);
+        }
         if (!DesktopUtil.browse(uri))
             throw new IOException("Failed to open URI: " + uri);
     }

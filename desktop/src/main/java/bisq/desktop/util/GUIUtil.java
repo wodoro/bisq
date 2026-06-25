@@ -740,8 +740,19 @@ public class GUIUtil {
         openWebPage(target, useReferrer, null);
     }
 
-    public static void openWebPageNoPopup(String target) {
-        doOpenWebPage(target);
+    /**
+     * Only http/https URLs may be passed to the system handler.
+     */
+    public static boolean isHttpUrl(String target) {
+        if (target == null)
+            return false;
+        try {
+            String scheme = new URI(target).getScheme();
+            return scheme != null &&
+                    (scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https"));
+        } catch (URISyntaxException e) {
+            return false;
+        }
     }
 
     public static void openWebPage(String target, boolean useReferrer, Runnable closeHandler) {
@@ -806,6 +817,11 @@ public class GUIUtil {
     }
 
     private static void doOpenWebPage(String target) {
+        if (!isHttpUrl(target)) {
+            log.warn("Refused to open non-http(s) URL: {}", target);
+            new Popup().warning(Res.get("guiUtil.openWebBrowser.invalidUrl", target)).show();
+            return;
+        }
         try {
             Utilities.openURI(new URI(target));
         } catch (Exception e) {

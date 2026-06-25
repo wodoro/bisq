@@ -48,6 +48,8 @@ import static com.natpryce.makeiteasy.MakeItEasy.with;
 import static org.bitcoinj.core.CoinMaker.oneBitcoin;
 import static org.bitcoinj.core.CoinMaker.satoshis;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -202,5 +204,26 @@ public class GUIUtilTest {
 
         assertEquals(" (0.01% of trade amount)",
                 GUIUtil.getPercentageOfTradeAmount(fee, oneBitcoin, Coin.ZERO));
+    }
+
+    @Test
+    public void isHttpUrl_acceptsHttpAndHttps() {
+        assertTrue(GUIUtil.isHttpUrl("http://bisq.network"));
+        assertTrue(GUIUtil.isHttpUrl("https://bisq.network/path?q=1"));
+        assertTrue(GUIUtil.isHttpUrl("HTTPS://bisq.network"));
+    }
+
+    @Test
+    public void isHttpUrl_rejectsOtherSchemes() {
+        assertFalse(GUIUtil.isHttpUrl("javascript:alert(1)"));
+        assertFalse(GUIUtil.isHttpUrl("mailto:a@b.c"));
+    }
+
+    @Test
+    public void isHttpUrl_rejectsMalformedOrNull() {
+        assertFalse(GUIUtil.isHttpUrl(null));
+        assertFalse(GUIUtil.isHttpUrl(""));
+        assertFalse(GUIUtil.isHttpUrl("bisq.network"));
+        assertFalse(GUIUtil.isHttpUrl("not a uri"));
     }
 }

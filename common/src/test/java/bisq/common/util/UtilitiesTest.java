@@ -17,9 +17,12 @@
 
 package bisq.common.util;
 
+import java.net.URI;
+
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class UtilitiesTest {
@@ -67,5 +70,14 @@ public class UtilitiesTest {
         assertEquals(-2147483648, Utilities.byteArrayToInteger(Utilities.decodeFromHex("80000000")));
         assertEquals(1114129, Utilities.byteArrayToInteger(Utilities.decodeFromHex("00110011")));
         assertEquals(-1114129, Utilities.byteArrayToInteger(Utilities.decodeFromHex("ffeeffef")));
+    }
+
+    @Test
+    public void openURI_rejectsDisallowedSchemes() {
+        // Only the rejection path is unit-tested; allowed schemes would spawn the OS handler.
+        assertThrows(java.io.IOException.class, () -> Utilities.openURI(URI.create("file:///etc/passwd")));
+        assertThrows(java.io.IOException.class, () -> Utilities.openURI(URI.create("javascript:alert(1)")));
+        assertThrows(java.io.IOException.class, () -> Utilities.openURI(URI.create("ftp://example.com")));
+        assertThrows(java.io.IOException.class, () -> Utilities.openURI(URI.create("mailto:a@b.c")));
     }
 }

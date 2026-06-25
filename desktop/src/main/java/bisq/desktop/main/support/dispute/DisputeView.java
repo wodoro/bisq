@@ -861,6 +861,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
         String message = stringBuilder.toString();
         new Popup().headLine("Report for " + allDisputes.size() + " disputes")
                 .maxMessageLength(500)
+                .disableHyperlinks()
                 .information(message)
                 .width(1200)
                 .actionButtonText("Copy to clipboard")
@@ -927,6 +928,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
         // We don't translate that as it is not intended for the public
         new Popup().headLine("Detailed text dump for " + disputeGroups.size() + " disputes")
                 .maxMessageLength(1000)
+                .disableHyperlinks()
                 .information(message)
                 .width(1200)
                 .actionButtonText("Copy to clipboard")
