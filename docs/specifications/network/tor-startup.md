@@ -289,7 +289,9 @@ sandbox, without the details of this section, which may change with the sandbox,
 to use no bridges and shut down, or to open the Tor network settings, which is also what closing it does, because the
 node has nothing else to do without Tor. Its text replaces the confirmation of the switch. Where the switch is disabled,
 on Windows and while the option is given on the command line, the popup has no button which allows them and names the
-option instead.
+option instead. On Windows, where only turning the sandbox off makes these bridges work, the popup offers to turn off
+the sandbox and shut down instead, as the popup of an unusable sandbox below does, unless `--useTorSandbox` is given on
+the command line.
 
 When the start fails because Tor cannot run in the sandbox on this system, which the node knows only from its own checks
 and the refusals of sandy, never from an exit of a sandboxed Tor, the desktop application shows the failure in a popup

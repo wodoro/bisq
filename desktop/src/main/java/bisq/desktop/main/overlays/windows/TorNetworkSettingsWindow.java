@@ -141,8 +141,13 @@ public class TorNetworkSettingsWindow extends Overlay<TorNetworkSettingsWindow> 
     // A short form of these settings for a start which the sandbox refused for the pluggable transports of the bridges
     public Popup createPluggableTransportsNotAllowedPopup(List<String> transportNames) {
         String transports = String.join(", ", transportNames);
+        // On Windows only turning the sandbox off makes these bridges work
+        boolean offerToTurnOffSandbox = Utilities.isWindows() && !config.useTorSandboxSetOnCommandLine;
         String message;
-        if (Utilities.isWindows()) {
+        if (offerToTurnOffSandbox) {
+            message = Res.get("torNetworkSettingWindow.pluggableTransportsNotAllowed.msg.windows.turnOff",
+                    transports) + "\n\n" + getTurnOffSandboxInfo();
+        } else if (Utilities.isWindows()) {
             message = Res.get("torNetworkSettingWindow.pluggableTransportsNotAllowed.msg.windows", transports);
         } else if (config.allowPluggableTransportsInTorSandboxSetOnCommandLine) {
             message = Res.get("torNetworkSettingWindow.pluggableTransportsNotAllowed.msg.commandLine", transports);
@@ -167,8 +172,14 @@ public class TorNetworkSettingsWindow extends Overlay<TorNetworkSettingsWindow> 
                     .secondaryActionButtonText(noBridges)
                     .onSecondaryAction(this::useNoBridgesAndShutDown);
         }
-        return popup.actionButtonText(noBridges)
+        popup.actionButtonText(noBridges)
                 .onAction(this::useNoBridgesAndShutDown);
+        // The message says what Tor without the sandbox risks, so the button needs no confirmation of its own
+        if (offerToTurnOffSandbox) {
+            popup.secondaryActionButtonText(Res.get("popup.torSandbox.unavailable.turnOff"))
+                    .onSecondaryAction(this::turnOffSandboxAndShutDown);
+        }
+        return popup;
     }
 
     // For a start which failed because Tor cannot run in the sandbox on this system. The failure already says what
@@ -183,14 +194,9 @@ public class TorNetworkSettingsWindow extends Overlay<TorNetworkSettingsWindow> 
                     .actionButtonText(Res.get("shared.shutDown"))
                     .onAction(this::shutDown);
         }
-        String message = warnMsg + "\n\n" + Res.get("popup.torSandbox.unavailable.turnOff.info",
-                Config.USE_TOR_SANDBOX, config.getConfigFile().getAbsolutePath());
-        return popup.warning(message)
+        return popup.warning(warnMsg + "\n\n" + getTurnOffSandboxInfo())
                 .actionButtonText(Res.get("popup.torSandbox.unavailable.turnOff"))
-                .onAction(() -> {
-                    configFileEditor.setOption(Config.USE_TOR_SANDBOX, "false");
-                    shutDown();
-                })
+                .onAction(this::turnOffSandboxAndShutDown)
                 .secondaryActionButtonText(Res.get("shared.shutDown"))
                 .onSecondaryAction(this::shutDown);
     }
@@ -490,6 +496,16 @@ public class TorNetworkSettingsWindow extends Overlay<TorNetworkSettingsWindow> 
 
     private void setBridgeAddressesByCustomBridges() {
         preferences.setBridgeAddresses(customBridges != null ? Arrays.asList(customBridges.split("\\n")) : null);
+    }
+
+    private String getTurnOffSandboxInfo() {
+        return Res.get("popup.torSandbox.unavailable.turnOff.info", Config.USE_TOR_SANDBOX,
+                config.getConfigFile().getAbsolutePath());
+    }
+
+    private void turnOffSandboxAndShutDown() {
+        configFileEditor.setOption(Config.USE_TOR_SANDBOX, "false");
+        shutDown();
     }
 
     private void useNoBridgesAndShutDown() {
