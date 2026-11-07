@@ -83,7 +83,7 @@ public class P2PNetworkSetup {
     @Getter
     @Nullable
     private BridgesCanHelpException bridgesCanHelpFailure;
-    // A failed start which turning the sandbox off fixes, for the popup which offers that
+    // A failed start because Tor cannot run in the sandbox, for the popup which offers to turn it off
     @Getter
     private boolean torSandboxUnavailable;
     final FilterPolicyService filterPolicyService;

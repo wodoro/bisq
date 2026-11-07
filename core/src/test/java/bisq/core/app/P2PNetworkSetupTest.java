@@ -147,6 +147,15 @@ class P2PNetworkSetupTest {
     }
 
     @Test
+    void forgetsAnUnusableSandboxAtALaterFailure() {
+        listener.onSetupFailed(new TorSandboxUnavailableException("Bisq did not start Tor"));
+
+        listener.onSetupFailed(new RuntimeException("Connection reset"));
+
+        assertFalse(p2PNetworkSetup.isTorSandboxUnavailable());
+    }
+
+    @Test
     void showsAnotherFailureWithTheAdviceToCheckTheInternetConnection() {
         listener.onSetupFailed(new RuntimeException("Connection reset"));
 

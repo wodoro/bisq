@@ -352,8 +352,8 @@ public class TorNetworkNode extends NetworkNode {
                 isWhonixGateway && Throwables.getRootCause(throwable) instanceof TorStartupFailedException;
     }
 
-    // The Tor library throws it only for what the node checks before Tor runs and for refusals of sandy, never for an
-    // exit of Tor in its sandbox
+    // The Tor library throws it only for what the node checks before Tor runs and for refusals of sandy, which it tells
+    // from an exit of Tor by the status record of sandy, a file which a sandboxed Tor cannot write
     static boolean isSandboxUnavailable(Throwable throwable) {
         return Throwables.getCausalChain(throwable).stream().anyMatch(SandboxUnavailableException.class::isInstance);
     }

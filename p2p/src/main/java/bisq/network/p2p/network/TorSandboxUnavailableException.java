@@ -18,9 +18,9 @@
 package bisq.network.p2p.network;
 
 /**
- * A failed start of Tor because the node cannot run it in the sandbox on this system, which turning the sandbox off
- * fixes. The node decides this itself, never from what a sandboxed Tor wrote, so that a compromised Tor cannot make the
- * desktop application offer to turn the sandbox off.
+ * A failed start of Tor because the node cannot run it in the sandbox, which turning the sandbox off is one way to fix.
+ * The node decides this from its own configuration, the exit status of sandy and the status record of sandy, which a
+ * sandboxed Tor cannot write, so that a compromised Tor cannot make the desktop application offer to turn it off.
  */
 public class TorSandboxUnavailableException extends ExplainedStartFailureException {
     public TorSandboxUnavailableException(String message) {

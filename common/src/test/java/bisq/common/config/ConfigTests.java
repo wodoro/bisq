@@ -193,8 +193,9 @@ public class ConfigTests {
         assertTrue(fromCommandLine.useTorSandbox);
         assertTrue(fromCommandLine.useTorSandboxSetOnCommandLine);
 
-        assertTrue(new Config().useTorSandbox);
-        assertFalse(new Config().useTorSandboxSetOnCommandLine);
+        Config defaults = new Config();
+        assertTrue(defaults.useTorSandbox);
+        assertFalse(defaults.useTorSandboxSetOnCommandLine);
     }
 
     @Test

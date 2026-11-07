@@ -179,8 +179,10 @@ class TorNetworkNodeStartTest {
             assertTrue(listener.failed.await(5, TimeUnit.SECONDS));
             assertEquals(TorNetworkNode.getPluggableTransportsNotAllowedMessage(List.of("obfs4"),
                     Utilities.isWindows()), listener.failure.get().getMessage());
-            // The desktop application offers to allow these transports or to use no bridges
+            // The desktop application offers to allow these transports or to use no bridges. The refusal is a
+            // SandboxUnavailableException too, but keeps the popup of the bridges.
             assertTrue(listener.failure.get() instanceof BridgesCanHelpException);
+            assertFalse(listener.failure.get() instanceof TorSandboxUnavailableException);
             assertEquals(List.of("obfs4"),
                     ((BridgesCanHelpException) listener.failure.get()).getNotAllowedTransportNames());
             assertTrue(listener.bridgesRequested.await(5, TimeUnit.SECONDS));
