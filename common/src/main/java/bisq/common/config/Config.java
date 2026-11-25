@@ -1265,6 +1265,8 @@ public class Config {
                     Files.createDirectories(parent);
                 }
                 FileUtil.createOwnerOnlyDirectories(path);
+                // For a path ending in .. the line above found the directory, which was created on the way to the parent
+                FileUtil.restrictToOwner(path, "rwx------");
             } catch (AccessDeniedException ex) {
                 throw accessDeniedException(dir);
             } catch (IOException ex) {
