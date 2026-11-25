@@ -190,6 +190,17 @@ public class ConfigTests {
         }
     }
 
+    // The parent of Bisq/missing/.. is Bisq/missing, so Bisq is created on the way to the parent
+    @Test
+    public void aDataDirectoryPathEndingInTwoDotsNamesTheOwnerOnlyDirectory(@TempDir Path tmp) throws IOException {
+        assumeTrue(FileSystems.getDefault().supportedFileAttributeViews().contains("posix"));
+        Path appDataDir = tmp.resolve("Bisq");
+
+        configWithOpts(opt(APP_DATA_DIR, appDataDir.resolve("missing") + File.separator + ".."), opt(HELP));
+
+        assertThat(Files.getPosixFilePermissions(appDataDir), equalTo(PosixFilePermissions.fromString("rwx------")));
+    }
+
     @Test
     public void whenUnrecognizedOptionIsSet_thenConfigExceptionIsThrown() {
         Exception exception = assertThrows(ConfigException.class, () -> configWithOpts(opt("bogus")));
