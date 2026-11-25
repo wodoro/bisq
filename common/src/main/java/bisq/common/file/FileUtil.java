@@ -19,6 +19,7 @@ package bisq.common.file;
 
 import bisq.common.util.Utilities;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.io.Files;
 
 import org.apache.commons.io.IOUtils;
@@ -28,6 +29,8 @@ import java.net.URISyntaxException;
 import java.net.URL;
 
 import java.nio.channels.Channels;
+import java.nio.file.DirectoryIteratorException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.FileVisitResult;
@@ -38,7 +41,9 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.PosixFileAttributes;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.nio.file.attribute.UserPrincipal;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -48,11 +53,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Scanner;
@@ -380,85 +387,91 @@ public class FileUtil {
      * Gives the path the POSIX permissions, for example {@code rwx------} to make a directory owner-only. A file system
      * without POSIX permissions, such as the one of Windows, keeps its own rules. A failure, for example for a path
      * that another user owns, is only logged, so that the caller works on as before.
+     *
+     * @return whether the path has the permissions now
      */
-    public static void restrictToOwner(Path path, String posixPermissions) {
+    public static boolean restrictToOwner(Path path, String posixPermissions) {
         if (!FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
-            return;
+            return false;
         }
         try {
             java.nio.file.Files.setPosixFilePermissions(path, PosixFilePermissions.fromString(posixPermissions));
+            return true;
         } catch (IOException | UnsupportedOperationException e) {
             log.warn("Could not make {} accessible to its owner only: {}", path, e.toString());
+            return false;
         }
     }
 
     /**
-     * Makes the directory and every directory below it accessible to its owner only (rwx------), with the rules of
-     * {@link #restrictToOwner}. A failure is logged, and the other directories still get the mode. Files keep their
-     * modes. A link below the directory is not followed, so directories outside it keep their modes; a directory which
-     * is itself a link is followed. A directory which its owner cannot read, for example one with the mode 0300, gets
-     * the mode first, so that its subtree gets it as well.
+     * Makes the directory and the directories below it accessible to their owner only (rwx------), with the rules of
+     * {@link #restrictToOwner}. Files keep their modes. A link below the directory is not followed, so directories
+     * outside it keep their modes; a directory which is itself a link is followed.
      * <p>
-     * As {@link #copyDirectory(File, File)}, the walk reads the attributes of an entry and then uses its path, so a link
-     * which replaces a directory between the two steps would be followed. Call it only while no other process writes
-     * below the directory, for example at the start before Tor runs.
+     * A directory below which belongs to another user than the directory itself keeps its mode, with everything in it.
+     * Owner-only, it would lock out the user of the directory if this process may change it, for example as root, and
+     * its owner could replace a directory in it with a link while the walk uses its path.
+     * <p>
+     * Each directory gets the mode before its entries are read, and the walk enters only directories which have it. So
+     * only the owner can replace an entry on the way. Call it only while no other process of the owner writes below the
+     * directory, for example at the start before Tor runs.
      */
     public static void restrictDirectoryTreeToOwner(Path directory) {
         if (!FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
             return;
         }
-        Path root;
         try {
-            root = directory.toRealPath();
-        } catch (IOException e) {
+            Path root = directory.toRealPath();
+            PosixFileAttributes attributes = readPosixAttributes(root);
+            if (attributes.isDirectory()) {
+                restrictDirectoryTreeToOwner(root, attributes.owner());
+            }
+        } catch (IOException | UnsupportedOperationException e) {
             log.warn("Could not make {} accessible to its owner only: {}", directory, e.toString());
-            return;
-        }
-        if (java.nio.file.Files.isDirectory(root)) {
-            restrictToOwner(root, "rwx------");
-            restrictDirectoriesBelowToOwner(root);
         }
     }
 
-    // The directory itself has the mode already
-    private static void restrictDirectoriesBelowToOwner(Path directory) {
-        try {
-            java.nio.file.Files.walkFileTree(directory, new SimpleFileVisitor<>() {
-                @Override
-                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attributes) {
-                    if (!dir.equals(directory)) {
-                        restrictToOwner(dir, "rwx------");
+    @VisibleForTesting
+    static void restrictDirectoryTreeToOwner(Path root, UserPrincipal owner) {
+        Deque<Path> directories = new ArrayDeque<>(List.of(root));
+        while (!directories.isEmpty()) {
+            Path directory = directories.pop();
+            if (!restrictToOwner(directory, "rwx------")) {
+                continue;
+            }
+            try (DirectoryStream<Path> entries = java.nio.file.Files.newDirectoryStream(directory)) {
+                for (Path entry : entries) {
+                    if (isDirectoryOfOwner(entry, owner)) {
+                        directories.push(entry);
                     }
-                    return FileVisitResult.CONTINUE;
                 }
-
-                @Override
-                public FileVisitResult visitFileFailed(Path file, IOException e) {
-                    // A directory which cannot be opened gets no preVisitDirectory. Once it has the mode, a walk of its
-                    // own can open it. The directory which this walk starts at already has the mode, so a failure there
-                    // is final, which ends the retries.
-                    if (!file.equals(directory) && java.nio.file.Files.isDirectory(file, LinkOption.NOFOLLOW_LINKS)) {
-                        restrictToOwner(file, "rwx------");
-                        restrictDirectoriesBelowToOwner(file);
-                    } else {
-                        log.warn("Could not make {} accessible to its owner only: {}", file, e.toString());
-                    }
-                    return FileVisitResult.CONTINUE;
-                }
-
-                @Override
-                public FileVisitResult postVisitDirectory(Path dir, IOException e) {
-                    if (e != null) {
-                        log.warn("Could not make all directories below {} accessible to their owner only: {}", dir,
-                                e.toString());
-                    }
-                    return FileVisitResult.CONTINUE;
-                }
-            });
-        } catch (IOException e) {
-            log.warn("Could not make the directories below {} accessible to their owner only: {}", directory,
-                    e.toString());
+            } catch (IOException | DirectoryIteratorException e) {
+                log.warn("Could not make all directories below {} accessible to their owner only: {}", directory,
+                        e.toString());
+            }
         }
+    }
+
+    private static boolean isDirectoryOfOwner(Path path, UserPrincipal owner) {
+        try {
+            PosixFileAttributes attributes = readPosixAttributes(path);
+            if (!attributes.isDirectory()) {
+                return false;
+            }
+            if (!attributes.owner().equals(owner)) {
+                log.warn("{} belongs to {} and not to {}. It keeps its mode and may be open to other users.",
+                        path, attributes.owner(), owner);
+                return false;
+            }
+            return true;
+        } catch (IOException e) {
+            log.warn("Could not make {} accessible to its owner only: {}", path, e.toString());
+            return false;
+        }
+    }
+
+    private static PosixFileAttributes readPosixAttributes(Path path) throws IOException {
+        return java.nio.file.Files.readAttributes(path, PosixFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
     }
 
     // No attribute on a file system without POSIX permissions, such as the one of Windows

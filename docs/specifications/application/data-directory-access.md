@@ -24,14 +24,17 @@ data and the logs.
   directories keep them from other users.
 - Directories which the node creates while it runs, for example for the backups of the wallets, may
   get the default mode of the process. They lie inside owner-only directories, and the next start
-  sets their mode.
+  sets their mode if they belong to the owner of the data directory.
 - The node does not follow a symbolic link below the data directory. A directory which such a link
   points to keeps its mode: the user who keeps a part of the data directory elsewhere, for example
   the wallet directory on another drive, protects it there. If `--appDataDir` itself names a link,
   the node sets the modes in the directory which it points to.
-- If the node cannot set the mode of a directory, for example because another user owns it, it logs
-  a warning, sets the modes of the other directories and starts as before. A file system without
-  these permissions, such as the one of Windows, keeps its own rules.
+- A directory which belongs to another user than the data directory keeps its mode, with everything
+  in it, and the node logs a warning. This also holds for a node which runs as root.
+- If the node cannot set the mode of a directory, for example because another user owns the data
+  directory, it logs a warning, leaves everything below that directory as it is, sets the modes of
+  the other directories and starts as before. A file system without these permissions, such as the
+  one of Windows, keeps its own rules.
 - The node sets the modes of the directory that `--appDataDir` names and of everything below it, so
   the data directory must be a directory of its own.
 
@@ -55,11 +58,26 @@ does not protect the files below it, and every directory gets the mode, at every
 directories of an earlier version, which other users could open at any time before. A file is
 opened by a lookup in its directory, so the files need no mode of their own.
 
+A data directory can hold directories of several users, for example after a start as root. The owner
+of a directory, and everyone who may write in it, can replace a directory in it with a link at any
+time, so the node could set the mode of a directory outside the data directory if it entered such a
+directory. And a node which runs as root could set the mode of a directory of root in which the user
+of the data directory works, which would lock that user out. So the node enters only directories of
+the owner of the data directory. It sets the mode of a directory before it reads the entries, so that
+only the owner can replace them, and enters a directory only if it could set its mode.
+
 A start which ends before the log is set up sets no mode. If it created the data directory with the
 default mode, other users could open its directories until a later start gets that far, and keep
 them open. Created owner-only, a new data directory is never open to others.
 
 ## Known gaps
+
+The directories of another user in a data directory stay as open as their owner made them. They must
+get the owner of the data directory, for example with `chown -R` as root.
+
+A node which runs as root does not protect itself from the owner of the data directory, if that is
+another user, or from a user who controls the path of the data directory. Such a user can replace a
+directory with a link on the way, and can do the same with the files which the node writes.
 
 A mode does not take back a file which another user opened, or linked with a hard link where the
 system allows it, while the data directory was open to others, and no mode takes back a copy. A file
