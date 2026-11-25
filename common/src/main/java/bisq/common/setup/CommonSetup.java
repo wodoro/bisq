@@ -23,7 +23,6 @@ import bisq.common.app.DevEnv;
 import bisq.common.app.Log;
 import bisq.common.app.Version;
 import bisq.common.config.Config;
-import bisq.common.file.FileUtil;
 import bisq.common.util.GcUtil;
 import bisq.common.util.Profiler;
 import bisq.common.util.Utilities;
@@ -37,8 +36,6 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import java.net.URISyntaxException;
 
 import java.nio.file.Paths;
-
-import java.io.File;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.RejectedExecutionException;
@@ -56,7 +53,8 @@ public class CommonSetup {
 
     public static void setup(Config config, GracefulShutDownHandler gracefulShutDownHandler) {
         setupLog(config);
-        restrictAppDataDirToOwner(config.appDataDir);
+        // After the log setup, so that a failure is in the log, and before Tor starts, which writes in the data directory
+        DataDirectoryAccess.restrictToOwner(config.appDataDir, config.walletDir.getParentFile());
         AsciiLogo.showAsciiLogo();
         Version.setBaseCryptoNetworkId(config.getBaseCurrencyNetwork().ordinal());
         Version.printVersion();
@@ -128,17 +126,6 @@ public class CommonSetup {
         log.info("Log file at: {}.log", logPath);
         Utilities.printSysInfo();
         Log.setLevel(Level.toLevel(config.logLevel));
-    }
-
-    // The data directory holds the wallet, the keys, the persisted data and the logs, in files with the default mode of
-    // the process. Every start makes the data directory and every directory in it owner-only, also those of an earlier
-    // version: the mode of a directory is checked at each lookup which passes it, so a directory inside the data
-    // directory which another user opened while it was open to others lets that user open the files written there
-    // later, until that directory itself is owner-only. Called after the log setup, so that a failure is in the log, and
-    // before Tor starts, which writes in the data directory.
-    @VisibleForTesting
-    static void restrictAppDataDirToOwner(File appDataDir) {
-        FileUtil.restrictDirectoryTreeToOwner(appDataDir.toPath());
     }
 
     protected static void setSystemProperties() {
